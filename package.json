@@ -1,0 +1,22 @@
+{
+  "name": "devsync-ai",
+  "version": "1.0.0",
+  "description": "AI-Powered Developer Collaboration Platform",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "info": "echo \"DevSync AI Workspace Root. Initialize client, server, or socket-server directories individually for specific scripts.\""
+  },
+  "keywords": [
+    "developer-collaboration",
+    "ai-platform",
+    "kanban",
+    "realtime-chat",
+    "project-management"
+  ],
+  "author": "DevSync AI Core Team",
+  "license": "MIT"
+}
