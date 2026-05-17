@@ -4,10 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss() // Injects the lightning-fast Tailwind v4 compiler into Vite
+  ],
   server: {
-    port: 3000, // Fixed industry-standard port for development frontends
-    host: true, // Exposes the server to local network interfaces
-    strictPort: true // Prevents Vite from auto-switching ports if 3000 is occupied
+    port: 3000,
+    host: true,
+    strictPort: true
   }
 })

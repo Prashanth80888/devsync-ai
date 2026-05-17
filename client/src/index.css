@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/* 
+  Custom global scrollbar and typography baseline matching our dark theme architecture.
+  Tailwind v4 allows writing custom utility modifiers right inside the main CSS layer.
+*/
+@layer base {
+  body {
+    @apply bg-[#0B0F19] text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200;
+  }
+  
+  /* Custom modern thin scrollbar across all platform sub-interfaces */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0F19;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1E293B;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+}
