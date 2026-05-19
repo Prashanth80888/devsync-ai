@@ -10,6 +10,7 @@ import teamRoutes from './routes/teamRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 // Import Global Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -70,6 +71,7 @@ app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/activity', activityRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
