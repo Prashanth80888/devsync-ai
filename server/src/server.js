@@ -2,15 +2,26 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Load environment variables
+// Import Routes
+import authRoutes from "./routes/authRoutes.js";
+
+// Import Global Error Middleware
+import { errorHandler } from "./middleware/errorMiddleware.js";
+
+// Load Environment Variables
 dotenv.config();
 
 // Initialize Express App
 const app = express();
 
-// Environment Variables
+// ========================================
+// ENVIRONMENT VARIABLES
+// ========================================
+
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+const CLIENT_URL =
+  process.env.CLIENT_URL || "http://localhost:5173";
 
 // ========================================
 // GLOBAL MIDDLEWARE
@@ -24,10 +35,10 @@ app.use(
   })
 );
 
-// Parse JSON Request Body
+// Parse Incoming JSON Requests
 app.use(express.json());
 
-// Parse URL Encoded Data
+// Parse URL Encoded Requests
 app.use(express.urlencoded({ extended: true }));
 
 // ========================================
@@ -40,6 +51,13 @@ app.get("/", (req, res) => {
     message: "DevSync AI API is running successfully",
   });
 });
+
+// ========================================
+// API ROUTES
+// ========================================
+
+// Authentication Routes
+app.use("/api/v1/auth", authRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
@@ -65,6 +83,12 @@ app.use((req, res) => {
     message: "API Route Not Found",
   });
 });
+
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+
+app.use(errorHandler);
 
 // ========================================
 // START SERVER
