@@ -1,21 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import { useAuthStore } from '../../store/authStore';
-import { Plus, Folder, Users, Layers, Calendar, BarChart2, MessageSquare, X } from 'lucide-react';
+import { useActivityStore } from '../../store/activityStore';
+import { Plus, Folder, Users, Layers, Calendar, BarChart2, MessageSquare, X, Activity, Terminal } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Helper component to resolve systemic action labels to high-fidelity visual indicators
+const ActivityIndicatorIcon = ({ actionType }) => {
+  switch (actionType) {
+    case 'TASK_CREATED':
+    case 'TASK_UPDATED':
+      return <div className="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20"><Layers className="w-3.5 h-3.5" /></div>;
+    case 'PROJECT_LAUNCHED':
+      return <div className="p-1.5 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20"><Folder className="w-3.5 h-3.5" /></div>;
+    case 'MEMBER_JOINED':
+      return <div className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20"><Users className="w-3.5 h-3.5" /></div>;
+    default:
+      return <div className="p-1.5 bg-slate-500/10 text-slate-400 rounded-lg border border-slate-500/20"><Terminal className="w-3.5 h-3.5" /></div>;
+  }
+};
 
 export default function HomeDashboard() {
   const { user } = useAuthStore();
   const { projects, teams, fetchProjects, fetchTeams, createNewProject, isLoading } = useProjectStore();
+  const { activities, fetchWorkspaceActivities, isFeedLoading } = useActivityStore();
 
-  // Component UI display states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', description: '', teamId: '' });
 
-  // Hook up state loaders securely into the component mount lifecycle
+  // Load all foundational workspace data blocks on component mount
   useEffect(() => {
     fetchProjects();
     fetchTeams();
+    fetchWorkspaceActivities();
   }, []);
 
   const handleCreateProject = async (e) => {
@@ -24,9 +41,10 @@ export default function HomeDashboard() {
 
     const result = await createNewProject(newProject.name, newProject.description, newProject.teamId);
     if (result.success) {
-      toast.success('Enterprise Project asset generated within workspace!');
+      toast.success('Enterprise Project asset generated!');
       setNewProject({ name: '', description: '', teamId: '' });
       setIsModalOpen(false);
+      fetchWorkspaceActivities(); // Automatically pull updated logs following a change
     } else {
       toast.error(result.message);
     }
@@ -54,7 +72,7 @@ export default function HomeDashboard() {
           { title: 'Total Projects', value: projects.length, desc: 'Active developments', icon: Folder, color: 'text-indigo-400 bg-indigo-500/5 border-indigo-500/10' },
           { title: 'Allocated Teams', value: teams.length, desc: 'Cross-functional groups', icon: Users, color: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10' },
           { title: 'Open Backlog Tasks', value: projects.reduce((acc, p) => acc + (p._count?.tasks || 0), 0), desc: 'Pending production steps', icon: Layers, color: 'text-amber-400 bg-amber-500/5 border-amber-500/10' },
-          { title: 'Active Live Syncs', value: 1, desc: 'Connected environments', icon: BarChart2, color: 'text-pink-400 bg-pink-500/5 border-pink-500/10' }
+          { title: 'Active Live Syncs', value: activities.length, desc: 'Logged event occurrences', icon: Activity, color: 'text-pink-400 bg-pink-500/5 border-pink-500/10' }
         ].map((stat, i) => (
           <div key={i} className={`bg-[#0D1222]/60 border p-5 rounded-2xl flex items-center justify-between transition-transform duration-150 hover:-translate-y-0.5 ${stat.color}`}>
             <div className="space-y-1">
@@ -121,26 +139,34 @@ export default function HomeDashboard() {
           )}
         </div>
 
-        {/* Right Side Column Panel: Team Infrastructure and Messaging Previews */}
+        {/* Right Side Column Panel: High-Fidelity Real-Time Audit Feed Widget */}
         <div className="space-y-4">
           <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-400" /> Active Squad Directories
+            <Activity className="w-4 h-4 text-pink-400" /> Platform Operations Feed
           </h2>
-          <div className="bg-[#0D1222]/40 border border-slate-800/60 rounded-2xl p-4 divide-y divide-slate-800/50">
-            {teams.length === 0 ? (
-              <p className="text-xs text-slate-500 p-4 text-center">No assigned workspace squads discovered.</p>
+          <div className="bg-[#0D1222]/40 border border-slate-800/60 rounded-2xl p-4 min-h-[300px]">
+            {isFeedLoading ? (
+              <div className="text-center text-xs text-slate-600 font-mono py-12 uppercase tracking-wider">Syncing tracking logs...</div>
+            ) : activities.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-12 italic">No operations recorded yet inside this workspace.</p>
             ) : (
-              teams.map((team) => (
-                <div key={team.id} className="py-3 first:pt-0 last:pb-0 flex justify-between items-center">
-                  <div>
-                    <h5 className="text-xs font-semibold text-slate-200">{team.name}</h5>
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">{team._count?.members || 1} assigned engineers</span>
+              <div className="space-y-4 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-800/60">
+                {activities.map((act) => (
+                  <div key={act.id} className="flex items-start gap-3 relative group">
+                    <div className="relative z-10 bg-[#070B14]">
+                      <ActivityIndicatorIcon actionType={act.actionType} />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <p className="text-xs text-slate-300 leading-normal font-medium">
+                        <span className="text-white font-semibold">{act.user?.fullName || 'System Event'}</span> {act.description}
+                      </p>
+                      <span className="text-[9px] font-mono text-slate-500 block mt-1 uppercase">
+                        {new Date(act.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-500/5 px-2 py-0.5 border border-indigo-500/10 rounded-md uppercase tracking-wider">
-                    {team._count?.projects || 0} Projs
-                  </span>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>
