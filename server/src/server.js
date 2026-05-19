@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 // Import Routes
 import authRoutes from "./routes/authRoutes.js";
 import orgRoutes from './routes/orgRoutes.js';
+import projectRoutes from './routes/projectRoutes.js'; // Injected module
+import teamRoutes from './routes/teamRoutes.js';
 
 // Import Global Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -60,6 +62,8 @@ app.get("/", (req, res) => {
 // Authentication Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/orgs", orgRoutes);
+app.use('/api/v1/projects', projectRoutes); // Active Project endpoint routing
+app.use('/api/v1/teams', teamRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
