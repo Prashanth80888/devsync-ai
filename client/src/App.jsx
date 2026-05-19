@@ -8,19 +8,33 @@ import {
 
 import { Toaster } from 'react-hot-toast';
 
-// Route Guards
-import OrganizationGuard from './components/OrganizationGuard';
+// ==================================================
+// ROUTE GUARDS
+// ==================================================
 
-// Core Structural Layout Components
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// ==================================================
+// LAYOUT COMPONENTS
+// ==================================================
+
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 
-// View Components
+// ==================================================
+// AUTH PAGES
+// ==================================================
+
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import SetupWorkspace from './pages/dashboard/SetupWorkspace';
+
+// ==================================================
+// DASHBOARD PAGES
+// ==================================================
 
 import HomeDashboard from './pages/dashboard/HomeDashboard';
-import SetupWorkspace from './pages/dashboard/SetupWorkspace';
+import KanbanBoard from './pages/dashboard/KanbanBoard';
 
 // ==================================================
 // ROOT APPLICATION COMPONENT
@@ -35,73 +49,7 @@ export default function App() {
   const router = createBrowserRouter([
 
     // ==================================================
-    // PRIVATE PROTECTED DASHBOARD ROUTES
-    // ==================================================
-
-    {
-      path: '/',
-
-      element: <OrganizationGuard />,
-
-      children: [
-        {
-          path: '',
-          element: <DashboardLayout />,
-
-          children: [
-
-            // Dashboard Home
-            {
-              path: '',
-              element: <HomeDashboard />
-            },
-
-            // Kanban
-            {
-              path: 'kanban',
-              element: (
-                <div className="text-slate-300 font-medium p-6">
-                  Kanban Board View Placeholder
-                </div>
-              )
-            },
-
-            // Team Chat
-            {
-              path: 'chat',
-              element: (
-                <div className="text-slate-300 font-medium p-6">
-                  Real-time Messaging Channel Placeholder
-                </div>
-              )
-            },
-
-            // Teams
-            {
-              path: 'teams',
-              element: (
-                <div className="text-slate-300 font-medium p-6">
-                  Organization Management Cluster Placeholder
-                </div>
-              )
-            }
-
-          ]
-        }
-      ]
-    },
-
-    // ==================================================
-    // WORKSPACE INITIALIZATION
-    // ==================================================
-
-    {
-      path: '/setup-workspace',
-      element: <SetupWorkspace />
-    },
-
-    // ==================================================
-    // AUTHENTICATION ROUTES
+    // PUBLIC AUTHENTICATION ROUTES
     // ==================================================
 
     {
@@ -110,20 +58,100 @@ export default function App() {
       element: <AuthLayout />,
 
       children: [
+
+        // Login
         {
           path: 'login',
           element: <Login />
         },
 
+        // Register
         {
           path: 'register',
           element: <Register />
         }
+
       ]
     },
 
     // ==================================================
-    // FALLBACK ROUTE
+    // ORGANIZATION WORKSPACE SETUP
+    // ==================================================
+
+    {
+      path: '/setup-workspace',
+
+      element: (
+        <ProtectedRoute>
+          <SetupWorkspace />
+        </ProtectedRoute>
+      )
+    },
+
+    // ==================================================
+    // PROTECTED DASHBOARD ROUTES
+    // ==================================================
+
+    {
+      path: '/',
+
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      ),
+
+      children: [
+
+        // ==================================================
+        // HOME DASHBOARD
+        // ==================================================
+
+        {
+          path: '',
+          element: <HomeDashboard />
+        },
+
+        // ==================================================
+        // KANBAN BOARD
+        // ==================================================
+
+        {
+          path: 'kanban',
+          element: <KanbanBoard />
+        },
+
+        // ==================================================
+        // TEAM CHAT
+        // ==================================================
+
+        {
+          path: 'chat',
+          element: (
+            <div className="text-slate-300 font-medium p-6">
+              Real-time Messaging Channel Placeholder
+            </div>
+          )
+        },
+
+        // ==================================================
+        // ORGANIZATIONS / TEAMS
+        // ==================================================
+
+        {
+          path: 'teams',
+          element: (
+            <div className="text-slate-300 font-medium p-6">
+              Organization Management Cluster Placeholder
+            </div>
+          )
+        }
+
+      ]
+    },
+
+    // ==================================================
+    // FALLBACK REDIRECT
     // ==================================================
 
     {
