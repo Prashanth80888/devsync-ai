@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
   createBrowserRouter,
   RouterProvider,
@@ -7,60 +8,105 @@ import {
 
 import { Toaster } from 'react-hot-toast';
 
-// Core structural layout components
+// Route Guards
+import OrganizationGuard from './components/OrganizationGuard';
+
+// Core Structural Layout Components
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 
-// View components mapping to the workspace routes
+// View Components
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+
 import HomeDashboard from './pages/dashboard/HomeDashboard';
+import SetupWorkspace from './pages/dashboard/SetupWorkspace';
+
+// ==================================================
+// ROOT APPLICATION COMPONENT
+// ==================================================
 
 export default function App() {
 
-  // Declarative decoupled routing definition matrix
+  // ==================================================
+  // APPLICATION ROUTING MATRIX
+  // ==================================================
+
   const router = createBrowserRouter([
+
+    // ==================================================
+    // PRIVATE PROTECTED DASHBOARD ROUTES
+    // ==================================================
+
     {
       path: '/',
-      element: <DashboardLayout />,
+
+      element: <OrganizationGuard />,
 
       children: [
         {
           path: '',
-          element: <HomeDashboard />
-        },
+          element: <DashboardLayout />,
 
-        {
-          path: 'kanban',
-          element: (
-            <div className="text-slate-300 font-medium">
-              Kanban Board View Placeholder
-            </div>
-          )
-        },
+          children: [
 
-        {
-          path: 'chat',
-          element: (
-            <div className="text-slate-300 font-medium">
-              Real-time Messaging Channel Placeholder
-            </div>
-          )
-        },
+            // Dashboard Home
+            {
+              path: '',
+              element: <HomeDashboard />
+            },
 
-        {
-          path: 'teams',
-          element: (
-            <div className="text-slate-300 font-medium">
-              Organization Management Cluster Placeholder
-            </div>
-          )
+            // Kanban
+            {
+              path: 'kanban',
+              element: (
+                <div className="text-slate-300 font-medium p-6">
+                  Kanban Board View Placeholder
+                </div>
+              )
+            },
+
+            // Team Chat
+            {
+              path: 'chat',
+              element: (
+                <div className="text-slate-300 font-medium p-6">
+                  Real-time Messaging Channel Placeholder
+                </div>
+              )
+            },
+
+            // Teams
+            {
+              path: 'teams',
+              element: (
+                <div className="text-slate-300 font-medium p-6">
+                  Organization Management Cluster Placeholder
+                </div>
+              )
+            }
+
+          ]
         }
       ]
     },
 
+    // ==================================================
+    // WORKSPACE INITIALIZATION
+    // ==================================================
+
+    {
+      path: '/setup-workspace',
+      element: <SetupWorkspace />
+    },
+
+    // ==================================================
+    // AUTHENTICATION ROUTES
+    // ==================================================
+
     {
       path: '/auth',
+
       element: <AuthLayout />,
 
       children: [
@@ -76,16 +122,25 @@ export default function App() {
       ]
     },
 
+    // ==================================================
+    // FALLBACK ROUTE
+    // ==================================================
+
     {
       path: '*',
       element: <Navigate to="/" replace />
     }
+
   ]);
+
+  // ==================================================
+  // APPLICATION RENDER
+  // ==================================================
 
   return (
     <>
 
-      {/* Toast Notification Container */}
+      {/* Global Toast Notification System */}
       <Toaster
         position="top-right"
 
@@ -107,6 +162,7 @@ export default function App() {
         }}
       />
 
+      {/* Global Router Renderer */}
       <RouterProvider router={router} />
 
     </>

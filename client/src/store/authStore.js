@@ -1,136 +1,80 @@
 import { create } from 'zustand';
 import api from '../api/axios';
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   token: localStorage.getItem('devsync_auth_token') || null,
   isAuthenticated: !!localStorage.getItem('devsync_auth_token'),
   isLoading: false,
 
-  // Action: Authenticate user using credentials and initialize session
   login: async (email, password) => {
     set({ isLoading: true });
-
     try {
-      const response = await api.post('/auth/login', {
-        email,
-        password
-      });
-
+      const response = await api.post('/auth/login', { email, password });
       const { token, data } = response.data;
-
       localStorage.setItem('devsync_auth_token', token);
-
-      set({
-        user: data.user,
-        token: token,
-        isAuthenticated: true,
-        isLoading: false
-      });
-
+      set({ user: data.user, token, isAuthenticated: true, isLoading: false });
       return { success: true };
-
     } catch (error) {
-
       set({ isLoading: false });
-
-      return {
-        success: false,
-        message:
-          error.response?.data?.message ||
-          'Authentication operation failed.'
-      };
+      return { success: false, message: error.response?.data?.message || 'Authentication failed.' };
     }
   },
 
-  // Action: Register a fresh organization user account profile
   register: async (fullName, email, password) => {
     set({ isLoading: true });
-
     try {
-      const response = await api.post('/auth/register', {
-        fullName,
-        email,
-        password
-      });
-
+      const response = await api.post('/auth/register', { fullName, email, password });
       const { token, data } = response.data;
-
       localStorage.setItem('devsync_auth_token', token);
-
-      set({
-        user: data.user,
-        token: token,
-        isAuthenticated: true,
-        isLoading: false
-      });
-
+      set({ user: data.user, token, isAuthenticated: true, isLoading: false });
       return { success: true };
-
     } catch (error) {
-
       set({ isLoading: false });
-
-      return {
-        success: false,
-        message:
-          error.response?.data?.message ||
-          'Registration operation failed.'
-      };
+      return { success: false, message: error.response?.data?.message || 'Registration failed.' };
     }
   },
 
-  // Action: Validate current session tokens and load telemetry on application entry boot
   checkAuthStatus: async () => {
-
-    const storedToken = localStorage.getItem(
-      'devsync_auth_token'
-    );
-
+    const storedToken = localStorage.getItem('devsync_auth_token');
     if (!storedToken) {
-      set({
-        isAuthenticated: false,
-        user: null
-      });
-
+      set({ isAuthenticated: false, user: null });
       return;
     }
-
     set({ isLoading: true });
-
     try {
-
       const response = await api.get('/auth/me');
-
-      set({
-        user: response.data.data.user,
-        isAuthenticated: true,
-        isLoading: false
-      });
-
+      set({ user: response.data.data.user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-
-      // Handled automatically by the axios interceptor token invalidation logic
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false
-      });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
 
-  // Action: Wipe session identifiers and safely disconnect user profile
+  // NEW ACTION: Dispatches corporate registration updates to server endpoints
+  createOrganization: async (orgName) => {
+    set({ isLoading: true });
+    try {
+      const response = await api.post('/orgs', { name: orgName });
+      const { organization } = response.data.data;
+      
+      // Pull down the active user state profile memory partition cleanly
+      const currentUser = get().user;
+      
+      // Instantly synchronize localized memory parameters with the returned database values
+      set({
+        user: { ...currentUser, orgId: organization.id, role: 'ORG_ADMIN' },
+        isLoading: false
+      });
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, message: error.response?.data?.message || 'Failed to initialize workspace organization.' };
+    }
+  },
+
   logout: () => {
-
     localStorage.removeItem('devsync_auth_token');
-
-    set({
-      user: null,
-      token: null,
-      isAuthenticated: false
-    });
-
+    set({ user: null, token: null, isAuthenticated: false });
     window.location.href = '/auth/login';
   }
 }));
