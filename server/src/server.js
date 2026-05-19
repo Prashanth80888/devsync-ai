@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import orgRoutes from './routes/orgRoutes.js';
 import projectRoutes from './routes/projectRoutes.js'; // Injected module
 import teamRoutes from './routes/teamRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 
 // Import Global Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -64,6 +65,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/orgs", orgRoutes);
 app.use('/api/v1/projects', projectRoutes); // Active Project endpoint routing
 app.use('/api/v1/teams', teamRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
