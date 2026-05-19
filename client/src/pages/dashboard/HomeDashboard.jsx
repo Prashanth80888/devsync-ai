@@ -1,48 +1,224 @@
-import React from 'react';
-import { Activity, Layout, Terminal, Code } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useProjectStore } from '../../store/projectStore';
+import { useAuthStore } from '../../store/authStore';
+import { Plus, Folder, Users, Layers, Calendar, BarChart2, MessageSquare, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function HomeDashboard() {
-  const stats = [
-    { title: 'Connected Nodes', value: 'Active API Core', icon: <Terminal className="text-indigo-400 w-5 h-5" /> },
-    { title: 'Project Trackers', value: '0 Verified', icon: <Layout className="text-purple-400 w-5 h-5" /> },
-    { title: 'AI Code Evaluations', value: 'Ready/Standby', icon: <Code className="text-emerald-400 w-5 h-5" /> },
-  ];
+  const { user } = useAuthStore();
+  const { projects, teams, fetchProjects, fetchTeams, createNewProject, isLoading } = useProjectStore();
+
+  // Component UI display states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newProject, setNewProject] = useState({ name: '', description: '', teamId: '' });
+
+  // Hook up state loaders securely into the component mount lifecycle
+  useEffect(() => {
+    fetchProjects();
+    fetchTeams();
+  }, []);
+
+  const handleCreateProject = async (e) => {
+    e.preventDefault();
+    if (!newProject.name.trim()) return toast.error('Project identifier title required.');
+
+    const result = await createNewProject(newProject.name, newProject.description, newProject.teamId);
+    if (result.success) {
+      toast.success('Enterprise Project asset generated within workspace!');
+      setNewProject({ name: '', description: '', teamId: '' });
+      setIsModalOpen(false);
+    } else {
+      toast.error(result.message);
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Upper Layout Heading Block */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-white">System Architecture Control Overview</h2>
-        <p className="text-sm text-slate-400 mt-1">Real-time status view across initialized frontend layout route slots.</p>
+    <div className="space-y-8">
+      {/* Upper Welcome and Overview Action Panel Banner Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#0D1222]/40 border border-slate-800/50 p-6 rounded-2xl gap-4 backdrop-blur-md">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back, {user?.fullName || 'Engineer'}</h1>
+          <p className="text-xs text-slate-400 mt-1">Here is a production analytics summary of your current workspace operations.</p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-600 px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition-colors duration-150 flex items-center gap-2 shadow-lg shadow-indigo-600/10 cursor-pointer border border-indigo-500/30"
+        >
+          <Plus className="w-4 h-4" /> New Project
+        </button>
       </div>
 
-      {/* Grid Layout Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-[#0F1424]/40 border border-slate-800/80 p-6 rounded-2xl flex items-center justify-between">
-            <div>
-              <span className="text-xs font-mono uppercase text-slate-500 tracking-wider block mb-1">{stat.title}</span>
-              <span className="text-lg font-bold text-slate-200">{stat.value}</span>
+      {/* Analytics Counter Dashboard Matrix Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { title: 'Total Projects', value: projects.length, desc: 'Active developments', icon: Folder, color: 'text-indigo-400 bg-indigo-500/5 border-indigo-500/10' },
+          { title: 'Allocated Teams', value: teams.length, desc: 'Cross-functional groups', icon: Users, color: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10' },
+          { title: 'Open Backlog Tasks', value: projects.reduce((acc, p) => acc + (p._count?.tasks || 0), 0), desc: 'Pending production steps', icon: Layers, color: 'text-amber-400 bg-amber-500/5 border-amber-500/10' },
+          { title: 'Active Live Syncs', value: 1, desc: 'Connected environments', icon: BarChart2, color: 'text-pink-400 bg-pink-500/5 border-pink-500/10' }
+        ].map((stat, i) => (
+          <div key={i} className={`bg-[#0D1222]/60 border p-5 rounded-2xl flex items-center justify-between transition-transform duration-150 hover:-translate-y-0.5 ${stat.color}`}>
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-slate-400 block uppercase tracking-wider">{stat.title}</span>
+              <span className="text-3xl font-bold text-white block tracking-tight">{stat.value}</span>
+              <span className="text-[11px] text-slate-500 block">{stat.desc}</span>
             </div>
-            <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-              {stat.icon}
+            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/40">
+              <stat.icon className="w-5 h-5" />
             </div>
           </div>
         ))}
       </div>
 
-      {/* Primary Technical Execution Status Notice Card */}
-      <div className="bg-slate-900/20 border border-slate-800/60 rounded-2xl p-6 flex items-start space-x-4">
-        <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl shrink-0">
-          <Activity className="w-5 h-5" />
+      {/* Main Lower Workspace Layout Split Block */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Side: Modern Project Card Listings View Grid */}
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+            <Folder className="w-4 h-4 text-indigo-400" /> Monitored Corporate Projects
+          </h2>
+          
+          {isLoading ? (
+            <div className="h-48 border border-dashed border-slate-800/80 rounded-2xl flex items-center justify-center text-xs text-slate-500 uppercase tracking-widest font-mono">
+              Loading core repositories...
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="p-12 border border-dashed border-slate-800 rounded-2xl text-center space-y-3 bg-[#0D1222]/20">
+              <p className="text-sm text-slate-400">No projects located inside this workspace cluster yet.</p>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-4 cursor-pointer"
+              >
+                Launch your primary project hub
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {projects.map((project) => (
+                <div key={project.id} className="bg-[#0D1222]/50 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700/60 transition-colors group relative overflow-hidden">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">{project.name}</h4>
+                      <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">
+                        {project.team?.name || 'Shared'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed min-h-[2rem]">
+                      {project.description || 'No contextual description was applied to this project hub asset.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-800/60 flex justify-between items-center text-[11px] text-slate-500 font-medium">
+                    <span className="flex items-center gap-1.5 bg-indigo-500/5 text-indigo-400 px-2 py-1 border border-indigo-500/10 rounded-lg">
+                      <Layers className="w-3.5 h-3.5" /> {project._count?.tasks || 0} Open Tasks
+                    </span>
+                    <span className="flex items-center gap-1 font-mono">
+                      <Calendar className="w-3.5 h-3.5" /> {new Date(project.createdAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div>
-          <h4 className="text-sm font-semibold text-slate-200">System Gateway State Notice</h4>
-          <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-2xl">
-            You are viewing the initial frontend single-page execution engine built with React Router DOM. All route shells, layout nodes, dynamic link states, and sidebar modules have been configured to follow modern engineering standards.
-          </p>
+
+        {/* Right Side Column Panel: Team Infrastructure and Messaging Previews */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+            <Users className="w-4 h-4 text-emerald-400" /> Active Squad Directories
+          </h2>
+          <div className="bg-[#0D1222]/40 border border-slate-800/60 rounded-2xl p-4 divide-y divide-slate-800/50">
+            {teams.length === 0 ? (
+              <p className="text-xs text-slate-500 p-4 text-center">No assigned workspace squads discovered.</p>
+            ) : (
+              teams.map((team) => (
+                <div key={team.id} className="py-3 first:pt-0 last:pb-0 flex justify-between items-center">
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-200">{team.name}</h5>
+                    <span className="text-[10px] text-slate-500 mt-0.5 block">{team._count?.members || 1} assigned engineers</span>
+                  </div>
+                  <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-500/5 px-2 py-0.5 border border-indigo-500/10 rounded-md uppercase tracking-wider">
+                    {team._count?.projects || 0} Projs
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Premium Glassmorphic Sliding Creator Overlay Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop Blur overlay curtain block */}
+          <div className="absolute inset-0 bg-[#04060C]/70 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
+          
+          <div className="w-full max-w-lg bg-[#0F1424] border border-slate-800/90 rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/30">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <Folder className="w-4 h-4 text-indigo-500" /> Setup Workspace Project Hub
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-800/50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProject} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Project Display Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Core API Refactor Engine"
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                  required
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Scope Description (Optional)</label>
+                <textarea
+                  placeholder="Summarize the core execution requirements..."
+                  rows="3"
+                  value={newProject.description}
+                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Assign Operations Squad (Optional)</label>
+                <select
+                  value={newProject.teamId}
+                  onChange={(e) => setNewProject({ ...newProject, teamId: e.target.value })}
+                  className="w-full bg-[#0D1222] border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
+                >
+                  <option value="">Retain as open corporate global resource</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800/60 flex justify-end gap-3 bg-slate-900/10 -mx-6 -mb-6 p-6">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2.5 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-semibold hover:bg-slate-800/40 transition-colors cursor-pointer"
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors shadow-lg shadow-indigo-600/10 cursor-pointer border border-indigo-500/30"
+                >
+                  Initialize Project Hub
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
