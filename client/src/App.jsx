@@ -35,6 +35,7 @@ import SetupWorkspace from './pages/dashboard/SetupWorkspace';
 
 import HomeDashboard from './pages/dashboard/HomeDashboard';
 import KanbanBoard from './pages/dashboard/KanbanBoard';
+import AnalyticsDashboard from './pages/dashboard/AnalyticsDashboard';
 
 // ==================================================
 // ROOT APPLICATION COMPONENT
@@ -59,13 +60,19 @@ export default function App() {
 
       children: [
 
-        // Login
+        // ==================================================
+        // LOGIN
+        // ==================================================
+
         {
           path: 'login',
           element: <Login />
         },
 
-        // Register
+        // ==================================================
+        // REGISTER
+        // ==================================================
+
         {
           path: 'register',
           element: <Register />
@@ -122,6 +129,15 @@ export default function App() {
         },
 
         // ==================================================
+        // ANALYTICS DASHBOARD
+        // ==================================================
+
+        {
+          path: 'analytics',
+          element: <AnalyticsDashboard />
+        },
+
+        // ==================================================
         // TEAM CHAT
         // ==================================================
 
@@ -168,7 +184,10 @@ export default function App() {
   return (
     <>
 
-      {/* Global Toast Notification System */}
+      {/* ==================================================
+          GLOBAL TOAST NOTIFICATION SYSTEM
+      ================================================== */}
+
       <Toaster
         position="top-right"
 
@@ -190,7 +209,10 @@ export default function App() {
         }}
       />
 
-      {/* Global Router Renderer */}
+      {/* ==================================================
+          GLOBAL ROUTER RENDERER
+      ================================================== */}
+
       <RouterProvider router={router} />
 
     </>

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../../store/projectStore';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityStore } from '../../store/activityStore';
-import { Plus, Folder, Users, Layers, Calendar, BarChart2, MessageSquare, X, Activity, Terminal } from 'lucide-react';
+import { useAnalyticsStore } from '../../store/analyticsStore';
+import { Plus, Folder, Users, Layers, Calendar, BarChart2, X, Activity, Terminal, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Helper component to resolve systemic action labels to high-fidelity visual indicators
@@ -21,18 +23,21 @@ const ActivityIndicatorIcon = ({ actionType }) => {
 };
 
 export default function HomeDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { projects, teams, fetchProjects, fetchTeams, createNewProject, isLoading } = useProjectStore();
   const { activities, fetchWorkspaceActivities, isFeedLoading } = useActivityStore();
+  const { metrics, fetchSummaryMetrics } = useAnalyticsStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', description: '', teamId: '' });
 
-  // Load all foundational workspace data blocks on component mount
+  // Load foundational data layers and telemetry models across the multi-tenant space
   useEffect(() => {
     fetchProjects();
     fetchTeams();
     fetchWorkspaceActivities();
+    fetchSummaryMetrics();
   }, []);
 
   const handleCreateProject = async (e) => {
@@ -44,11 +49,20 @@ export default function HomeDashboard() {
       toast.success('Enterprise Project asset generated!');
       setNewProject({ name: '', description: '', teamId: '' });
       setIsModalOpen(false);
-      fetchWorkspaceActivities(); // Automatically pull updated logs following a change
+      // Synchronize database records across all tracking states simultaneously
+      fetchWorkspaceActivities();
+      fetchSummaryMetrics();
+      fetchProjects();
     } else {
       toast.error(result.message);
     }
   };
+
+  // Safe structural fallbacks for computed statistics summaries
+  const totalProjectsCount = metrics?.summary?.totalProjects ?? projects.length;
+  const totalTeamsCount = metrics?.summary?.totalTeams ?? teams.length;
+  const totalTasksCount = metrics?.summary?.totalTasks ?? 0;
+  const engineeringVelocity = metrics?.summary?.projectVelocity ?? 0;
 
   return (
     <div className="space-y-8">
@@ -69,18 +83,22 @@ export default function HomeDashboard() {
       {/* Analytics Counter Dashboard Matrix Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Total Projects', value: projects.length, desc: 'Active developments', icon: Folder, color: 'text-indigo-400 bg-indigo-500/5 border-indigo-500/10' },
-          { title: 'Allocated Teams', value: teams.length, desc: 'Cross-functional groups', icon: Users, color: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10' },
-          { title: 'Open Backlog Tasks', value: projects.reduce((acc, p) => acc + (p._count?.tasks || 0), 0), desc: 'Pending production steps', icon: Layers, color: 'text-amber-400 bg-amber-500/5 border-amber-500/10' },
-          { title: 'Active Live Syncs', value: activities.length, desc: 'Logged event occurrences', icon: Activity, color: 'text-pink-400 bg-pink-500/5 border-pink-500/10' }
+          { title: 'Total Projects', value: totalProjectsCount, desc: 'Active developments', icon: Folder, color: 'text-indigo-400 bg-indigo-500/5 border-indigo-500/10', target: '/dashboard' },
+          { title: 'Allocated Teams', value: totalTeamsCount, desc: 'Cross-functional groups', icon: Users, color: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10', target: '/dashboard' },
+          { title: 'Open Backlog Tasks', value: totalTasksCount, desc: 'Pending production steps', icon: Layers, color: 'text-amber-400 bg-amber-500/5 border-amber-500/10', target: '/dashboard/tasks' },
+          { title: 'Sprint Velocity Index', value: `${engineeringVelocity}%`, desc: 'Closed deployment logs', icon: BarChart2, color: 'text-pink-400 bg-pink-500/5 border-pink-500/10', target: '/dashboard/analytics' }
         ].map((stat, i) => (
-          <div key={i} className={`bg-[#0D1222]/60 border p-5 rounded-2xl flex items-center justify-between transition-transform duration-150 hover:-translate-y-0.5 ${stat.color}`}>
+          <div 
+            key={i} 
+            onClick={() => navigate(stat.target)}
+            className={`bg-[#0D1222]/60 border p-5 rounded-2xl flex items-center justify-between transition-all duration-150 hover:-translate-y-0.5 hover:border-slate-700/50 cursor-pointer group`}
+          >
             <div className="space-y-1">
               <span className="text-xs font-medium text-slate-400 block uppercase tracking-wider">{stat.title}</span>
-              <span className="text-3xl font-bold text-white block tracking-tight">{stat.value}</span>
+              <span className="text-3xl font-bold text-white block tracking-tight group-hover:text-white transition-colors">{stat.value}</span>
               <span className="text-[11px] text-slate-500 block">{stat.desc}</span>
             </div>
-            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/40">
+            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/40 group-hover:border-slate-700/60 transition-colors">
               <stat.icon className="w-5 h-5" />
             </div>
           </div>
@@ -112,10 +130,16 @@ export default function HomeDashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {projects.map((project) => (
-                <div key={project.id} className="bg-[#0D1222]/50 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700/60 transition-colors group relative overflow-hidden">
+                <div 
+                  key={project.id} 
+                  onClick={() => navigate('/dashboard/tasks')}
+                  className="bg-[#0D1222]/50 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between hover:border-indigo-500/30 hover:bg-[#0F152A]/40 transition-all duration-200 group relative overflow-hidden cursor-pointer"
+                >
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <h4 className="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">{project.name}</h4>
+                      <h4 className="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
+                        {project.name}
+                      </h4>
                       <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">
                         {project.team?.name || 'Shared'}
                       </span>
@@ -126,11 +150,11 @@ export default function HomeDashboard() {
                   </div>
 
                   <div className="mt-5 pt-4 border-t border-slate-800/60 flex justify-between items-center text-[11px] text-slate-500 font-medium">
-                    <span className="flex items-center gap-1.5 bg-indigo-500/5 text-indigo-400 px-2 py-1 border border-indigo-500/10 rounded-lg">
+                    <span className="flex items-center gap-1.5 bg-indigo-500/5 text-indigo-400 px-2 py-1 border border-indigo-500/10 rounded-lg group-hover:bg-indigo-500/10 transition-colors">
                       <Layers className="w-3.5 h-3.5" /> {project._count?.tasks || 0} Open Tasks
                     </span>
-                    <span className="flex items-center gap-1 font-mono">
-                      <Calendar className="w-3.5 h-3.5" /> {new Date(project.createdAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                    <span className="flex items-center gap-1 font-mono text-slate-400 group-hover:text-indigo-400 transition-colors">
+                      Launch Board <ArrowRight className="w-3 h-3 ml-0.5 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </div>
                 </div>
@@ -175,7 +199,6 @@ export default function HomeDashboard() {
       {/* Premium Glassmorphic Sliding Creator Overlay Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop Blur overlay curtain block */}
           <div className="absolute inset-0 bg-[#04060C]/70 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
           
           <div className="w-full max-w-lg bg-[#0F1424] border border-slate-800/90 rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
