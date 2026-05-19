@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 // Import Routes
 import authRoutes from "./routes/authRoutes.js";
+import orgRoutes from './routes/orgRoutes.js';
 
 // Import Global Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -58,6 +59,7 @@ app.get("/", (req, res) => {
 
 // Authentication Routes
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/orgs", orgRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
