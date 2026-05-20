@@ -36,6 +36,7 @@ import SetupWorkspace from './pages/dashboard/SetupWorkspace';
 import HomeDashboard from './pages/dashboard/HomeDashboard';
 import KanbanBoard from './pages/dashboard/KanbanBoard';
 import AnalyticsDashboard from './pages/dashboard/AnalyticsDashboard';
+import SettingsWorkspace from './pages/dashboard/SettingsWorkspace';
 
 // ==================================================
 // ROOT APPLICATION COMPONENT
@@ -135,6 +136,15 @@ export default function App() {
         {
           path: 'analytics',
           element: <AnalyticsDashboard />
+        },
+
+        // ==================================================
+        // SETTINGS WORKSPACE
+        // ==================================================
+
+        {
+          path: 'settings',
+          element: <SettingsWorkspace />
         },
 
         // ==================================================
