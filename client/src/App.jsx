@@ -39,6 +39,12 @@ import AnalyticsDashboard from './pages/dashboard/AnalyticsDashboard';
 import SettingsWorkspace from './pages/dashboard/SettingsWorkspace';
 
 // ==================================================
+// CODE PLAYGROUND PAGE
+// ==================================================
+
+import CodePlayground from './pages/dashboard/CodePlayground';
+
+// ==================================================
 // ROOT APPLICATION COMPONENT
 // ==================================================
 
@@ -127,6 +133,15 @@ export default function App() {
         {
           path: 'kanban',
           element: <KanbanBoard />
+        },
+
+        // ==================================================
+        // CODE PLAYGROUND
+        // ==================================================
+
+        {
+          path: 'playground',
+          element: <CodePlayground />
         },
 
         // ==================================================

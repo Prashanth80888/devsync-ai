@@ -11,7 +11,8 @@ import {
   LogOut, 
   Cpu, 
   Settings,
-  BarChart2
+  BarChart2,
+  Code2
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
@@ -39,6 +40,17 @@ export default function DashboardLayout() {
       to: '/kanban',
       icon: <FolderKanban className="w-4 h-4" />,
       label: 'Kanban Boards',
+      exact: false
+    },
+
+    // ==================================================
+    // CODE PLAYGROUND
+    // ==================================================
+
+    {
+      to: '/playground',
+      icon: <Code2 className="w-4 h-4" />,
+      label: 'Code Playground',
       exact: false
     },
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { usePlaygroundStore } from '../store/playgroundStore';
-import { useProjectStore } from '../store/projectStore';
+import { usePlaygroundStore } from '../../store/playgroundStore';
+import { useProjectStore } from '../../store/projectStore';
 import { Terminal, Save, Sparkles, Loader2, Code, ShieldAlert, Cpu, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
