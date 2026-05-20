@@ -66,6 +66,9 @@ model User {
   // Code Playground Relations
   playgroundsCreated CodePlayground[] @relation("SnippetCreator")
 
+  // Analytics Reports
+  analyticsReports AnalyticsReport[]
+
   @@index([email])
 }
 
@@ -153,11 +156,14 @@ model Project {
   team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   // Relations
-  tasks         Task[]
-  activityLogs  ActivityLog[]
+  tasks            Task[]
+  activityLogs     ActivityLog[]
 
   // Code Playground Relations
-  playgrounds   CodePlayground[]
+  playgrounds      CodePlayground[]
+
+  // Analytics Reports
+  analyticsReports AnalyticsReport[]
 }
 
 // ==================================================
@@ -278,33 +284,25 @@ model CodePlayground {
 
   language        String   @default("javascript")
 
-  // ==================================================
   // PROJECT RELATION
-  // ==================================================
 
   projectId       String
 
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  // ==================================================
   // CREATOR RELATION
-  // ==================================================
 
   createdById     String
 
   createdBy       User     @relation("SnippetCreator", fields: [createdById], references: [id])
 
-  // ==================================================
   // AI REVIEW CACHE
-  // ==================================================
 
   aiReviewCache   String?  @db.Text
 
   lastAnalyzedAt  DateTime?
 
-  // ==================================================
   // TIMESTAMPS
-  // ==================================================
 
   createdAt       DateTime @default(now())
 
@@ -313,5 +311,59 @@ model CodePlayground {
   @@index([projectId])
 
   @@index([createdById])
+
+}
+
+// ==================================================
+// PROJECT PERFORMANCE & AI ANALYTICS LAYER
+// ==================================================
+
+model AnalyticsReport {
+
+  id                        String   @id @default(uuid())
+
+  projectId                 String
+
+  generatedById             String
+
+  // Quantitative Structural Metrics
+
+  totalTasks                Int      @default(0)
+
+  completedTasks            Int      @default(0)
+
+  pendingTasks              Int      @default(0)
+
+  backlogTasks              Int      @default(0)
+
+  velocityScore             Float    @default(0.0)
+
+  playgroundCount           Int      @default(0)
+
+  criticalSecurityWarnings  Int      @default(0)
+
+  // Gemini Natural Language Outputs
+
+  executiveSummary          String   @db.Text
+
+  bottleneckAnalysis        String   @db.Text
+
+  recommendedActions        String[]
+
+  projectHealthRating       String   @default("STABLE")
+
+  createdAt                 DateTime @default(now())
+
+  updatedAt                 DateTime @updatedAt
+
+  // Relations
+
+  project                   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  generatedBy               User     @relation(fields: [generatedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+
+  @@index([projectId, createdAt(sort: Desc)])
 
 }
