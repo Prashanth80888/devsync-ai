@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorMiddleware.js';
+import { getIO } from '../socket.js';
 
 const prisma = new PrismaClient();
 
@@ -9,25 +10,57 @@ const prisma = new PrismaClient();
  * @access  Private
  */
 export const createTask = asyncHandler(async (req, res, next) => {
-  const { title, description, status, priority, dueDate, projectId, assigneeId } = req.body;
+
+  const {
+    title,
+    description,
+    status,
+    priority,
+    dueDate,
+    projectId,
+    assigneeId
+  } = req.body;
+
   const creatorId = req.user.id;
   const orgId = req.user.orgId;
 
   if (!title || !projectId) {
-    return next(new AppError('Please supply both a task title and valid project identification mapping.', 400));
+
+    return next(
+      new AppError(
+        'Please supply both a task title and valid project identification mapping.',
+        400
+      )
+    );
   }
 
-  // 1. Verify the targeted project asset actually belongs to the user's organization
+  // ==================================================
+  // VERIFY PROJECT OWNERSHIP
+  // ==================================================
+
   const parentProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId }
+    where: {
+      id: projectId,
+      orgId
+    }
   });
 
   if (!parentProject) {
-    return next(new AppError('Target project asset not discovered within this workspace organization.', 404));
+
+    return next(
+      new AppError(
+        'Target project asset not discovered within this workspace organization.',
+        404
+      )
+    );
   }
 
-  // 2. Commit the new task to the database
+  // ==================================================
+  // CREATE TASK
+  // ==================================================
+
   const task = await prisma.task.create({
+
     data: {
       title,
       description,
@@ -38,17 +71,35 @@ export const createTask = asyncHandler(async (req, res, next) => {
       assigneeId: assigneeId || null,
       creatorId
     },
+
     include: {
       assignee: {
-        select: { id: true, fullName: true, avatarUrl: true }
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true
+        }
       }
     }
   });
+
+  // ==================================================
+  // SOCKET.IO REAL-TIME EVENT
+  // ==================================================
+
+  getIO()
+    .to(projectId)
+    .emit('task:created', task);
+
+  // ==================================================
+  // RESPONSE
+  // ==================================================
 
   res.status(201).json({
     status: 'success',
     data: { task }
   });
+
 });
 
 /**
@@ -57,36 +108,76 @@ export const createTask = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 export const getProjectTasks = asyncHandler(async (req, res, next) => {
+
   const { projectId } = req.params;
   const orgId = req.user.orgId;
 
-  // Verify the project exists within the user's organization tenant boundary
+  // ==================================================
+  // VERIFY PROJECT ACCESS
+  // ==================================================
+
   const targetProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId }
+
+    where: {
+      id: projectId,
+      orgId
+    }
+
   });
 
   if (!targetProject) {
-    return next(new AppError('Target project context not discovered or access is denied.', 404));
+
+    return next(
+      new AppError(
+        'Target project context not discovered or access is denied.',
+        404
+      )
+    );
   }
 
+  // ==================================================
+  // FETCH TASKS
+  // ==================================================
+
   const tasks = await prisma.task.findMany({
+
     where: { projectId },
+
     include: {
+
       assignee: {
-        select: { id: true, fullName: true, avatarUrl: true }
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true
+        }
       },
+
       creator: {
-        select: { id: true, fullName: true }
+        select: {
+          id: true,
+          fullName: true
+        }
       }
+
     },
-    orderBy: { createdAt: 'asc' }
+
+    orderBy: {
+      createdAt: 'asc'
+    }
+
   });
+
+  // ==================================================
+  // RESPONSE
+  // ==================================================
 
   res.status(200).json({
     status: 'success',
     results: tasks.length,
     data: { tasks }
   });
+
 });
 
 /**
@@ -95,42 +186,88 @@ export const getProjectTasks = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 export const updateTask = asyncHandler(async (req, res, next) => {
+
   const { id } = req.params;
+
   const orgId = req.user.orgId;
+
   const updates = req.body;
 
-  // Locate task item through a cross-relation boundary to ensure it belongs to the user's organization
+  // ==================================================
+  // VERIFY TASK ACCESS
+  // ==================================================
+
   const targetTask = await prisma.task.findFirst({
+
     where: {
       id,
-      project: { orgId }
+
+      project: {
+        orgId
+      }
     }
+
   });
 
   if (!targetTask) {
-    return next(new AppError('Targeted task asset was not discovered inside this workspace organization.', 404));
+
+    return next(
+      new AppError(
+        'Targeted task asset was not discovered inside this workspace organization.',
+        404
+      )
+    );
   }
 
-  // Safe format date parameters if a custom delivery deadline is applied
+  // ==================================================
+  // FORMAT DATE
+  // ==================================================
+
   if (updates.dueDate) {
     updates.dueDate = new Date(updates.dueDate);
   }
 
-  // Commit task modifications cleanly
+  // ==================================================
+  // UPDATE TASK
+  // ==================================================
+
   const updatedTask = await prisma.task.update({
+
     where: { id },
+
     data: updates,
+
     include: {
+
       assignee: {
-        select: { id: true, fullName: true, avatarUrl: true }
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true
+        }
       }
+
     }
+
   });
+
+  // ==================================================
+  // SOCKET.IO REAL-TIME UPDATE EVENT
+  // ==================================================
+
+  getIO()
+    .to(targetTask.projectId)
+    .emit('task:updated', updatedTask);
+
+  // ==================================================
+  // RESPONSE
+  // ==================================================
 
   res.status(200).json({
     status: 'success',
     data: { task: updatedTask }
   });
+
 });
 
 /**
@@ -139,24 +276,62 @@ export const updateTask = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 export const deleteTask = asyncHandler(async (req, res, next) => {
+
   const { id } = req.params;
+
   const orgId = req.user.orgId;
 
+  // ==================================================
+  // VERIFY TASK ACCESS
+  // ==================================================
+
   const targetTask = await prisma.task.findFirst({
+
     where: {
       id,
-      project: { orgId }
+
+      project: {
+        orgId
+      }
     }
+
   });
 
   if (!targetTask) {
-    return next(new AppError('Targeted task asset not located.', 404));
+
+    return next(
+      new AppError(
+        'Targeted task asset not located.',
+        404
+      )
+    );
   }
 
-  await prisma.task.delete({ where: { id } });
+  // ==================================================
+  // DELETE TASK
+  // ==================================================
+
+  await prisma.task.delete({
+    where: { id }
+  });
+
+  // ==================================================
+  // SOCKET.IO DELETE EVENT
+  // ==================================================
+
+  getIO()
+    .to(targetTask.projectId)
+    .emit('task:deleted', {
+      id: targetTask.id
+    });
+
+  // ==================================================
+  // RESPONSE
+  // ==================================================
 
   res.status(204).json({
     status: 'success',
     data: null
   });
+
 });

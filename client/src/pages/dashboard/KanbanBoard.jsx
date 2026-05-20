@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTaskStore } from '../../store/taskStore';
 import { useProjectStore } from '../../store/projectStore';
+import { useSocketSync } from '../../hooks/useSocketSync'; // <-- IMMUTABLE SOCKET SYNC INJECTION
 import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, User, Layers, ArrowRight, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,9 +25,11 @@ export default function KanbanBoard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', priority: 'MEDIUM', status: 'TODO' });
 
+  // EXECUTE SUBSCRIPTION ENGINE LIFECYCLE FOR THE BOARD ACTIVE CANVAS ROOM
+  useSocketSync();
+
   useEffect(() => {
     fetchProjects().then(() => {
-      // Auto-select the first available project workspace context if none is loaded
       const currentProjects = useProjectStore.getState().projects;
       if (currentProjects.length > 0 && !selectedProjectId) {
         setSelectedProjectId(currentProjects[0].id);

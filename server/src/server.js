@@ -1,11 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import http from "http";
+
+// Import Socket.IO Initializer
+import { initSocket } from "./socket.js";
 
 // Import Routes
 import authRoutes from "./routes/authRoutes.js";
 import orgRoutes from './routes/orgRoutes.js';
-import projectRoutes from './routes/projectRoutes.js'; // Injected module
+import projectRoutes from './routes/projectRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
@@ -20,6 +24,18 @@ dotenv.config();
 
 // Initialize Express App
 const app = express();
+
+// ========================================
+// CREATE HTTP SERVER
+// ========================================
+
+const server = http.createServer(app);
+
+// ========================================
+// INITIALIZE SOCKET.IO
+// ========================================
+
+initSocket(server);
 
 // ========================================
 // ENVIRONMENT VARIABLES
@@ -65,12 +81,19 @@ app.get("/", (req, res) => {
 
 // Authentication Routes
 app.use("/api/v1/auth", authRoutes);
+
 app.use("/api/v1/orgs", orgRoutes);
-app.use('/api/v1/projects', projectRoutes); // Active Project endpoint routing
+
+app.use('/api/v1/projects', projectRoutes);
+
 app.use('/api/v1/teams', teamRoutes);
+
 app.use('/api/v1/tasks', taskRoutes);
+
 app.use('/api/v1/activity', activityRoutes);
+
 app.use('/api/v1/analytics', analyticsRoutes);
+
 app.use('/api/v1/users', userRoutes);
 
 // ========================================
@@ -78,6 +101,7 @@ app.use('/api/v1/users', userRoutes);
 // ========================================
 
 app.get("/api/v1/health", (req, res) => {
+
   res.status(200).json({
     success: true,
     status: "healthy",
@@ -85,6 +109,7 @@ app.get("/api/v1/health", (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
   });
+
 });
 
 // ========================================
@@ -92,10 +117,12 @@ app.get("/api/v1/health", (req, res) => {
 // ========================================
 
 app.use((req, res) => {
+
   res.status(404).json({
     success: false,
     message: "API Route Not Found",
   });
+
 });
 
 // ========================================
@@ -108,7 +135,8 @@ app.use(errorHandler);
 // START SERVER
 // ========================================
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
+
   console.log(`
 ========================================
 🚀 DevSync AI Server Started
@@ -116,6 +144,8 @@ app.listen(PORT, () => {
 🌐 Environment : ${process.env.NODE_ENV}
 📡 Port        : ${PORT}
 🔗 API URL     : http://localhost:${PORT}
+⚡ Socket.IO   : ACTIVE
 ========================================
   `);
+
 });
