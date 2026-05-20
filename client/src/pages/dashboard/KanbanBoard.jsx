@@ -2,25 +2,37 @@ import React, { useEffect, useState } from 'react';
 import { useTaskStore } from '../../store/taskStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSocketSync } from '../../hooks/useSocketSync'; // <-- IMMUTABLE SOCKET SYNC INJECTION
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, User, Layers, ArrowRight, X } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, User, Layers, ArrowRight, X, Sparkles, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// STATUS_LANES calibrated precisely to align with schema.prisma enums
 const STATUS_LANES = [
   { id: 'TODO', title: 'To Do', color: 'border-t-slate-500 bg-slate-500/5 text-slate-400' },
   { id: 'IN_PROGRESS', title: 'In Progress', color: 'border-t-indigo-500 bg-indigo-500/5 text-indigo-400' },
-  { id: 'REVIEW', title: 'Review Phase', color: 'border-t-amber-500 bg-amber-500/5 text-amber-400' },
+  { id: 'IN_REVIEW', title: 'Review Phase', color: 'border-t-amber-500 bg-amber-500/5 text-amber-400' },
   { id: 'DONE', title: 'Completed', color: 'border-t-emerald-500 bg-emerald-500/5 text-emerald-400' }
 ];
 
 const PRIORITY_BADGES = {
   LOW: 'bg-slate-900 border-slate-800 text-slate-400',
   MEDIUM: 'bg-indigo-950/40 border-indigo-900/60 text-indigo-400',
-  HIGH: 'bg-rose-950/40 border-rose-900/60 text-rose-400'
+  HIGH: 'bg-rose-950/40 border-rose-900/60 text-rose-400',
+  URGENT: 'bg-red-950/60 border-red-900 text-red-400'
 };
 
 export default function KanbanBoard() {
   const { projects, fetchProjects } = useProjectStore();
-  const { tasks, selectedProjectId, setSelectedProjectId, fetchProjectTasks, createNewTask, updateTaskStatus, isLoading } = useTaskStore();
+  const { 
+    tasks, 
+    selectedProjectId, 
+    setSelectedProjectId, 
+    fetchProjectTasks, 
+    createNewTask, 
+    updateTaskStatus, 
+    analyzeTaskWithAI,        // <-- ADDED FROM TASK STORE ACTION
+    isAiAnalyzing = {},       // <-- ADDED ISOLATED CARD INDEX
+    isLoading 
+  } = useTaskStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', priority: 'MEDIUM', status: 'TODO' });
@@ -56,13 +68,24 @@ export default function KanbanBoard() {
   };
 
   const promoteTaskStatus = async (taskId, currentStatus) => {
-    const laneSequence = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
+    const laneSequence = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
     const currentIndex = laneSequence.indexOf(currentStatus);
     if (currentIndex === -1 || currentIndex === laneSequence.length - 1) return;
 
     const nextStatus = laneSequence[currentIndex + 1];
     const res = await updateTaskStatus(taskId, { status: nextStatus });
     if (res.success) toast.success(`Task shifted to ${nextStatus.replace('_', ' ')}`);
+  };
+
+  // AI TRIGGER HANDLER
+  const triggerAiBlueprint = async (taskId) => {
+    toast.loading('DevSync AI Agent calculating roadmap specs...', { id: taskId });
+    const res = await analyzeTaskWithAI(taskId);
+    if (res.success) {
+      toast.success('Architecture breakdown applied to canvas!', { id: taskId });
+    } else {
+      toast.error(res.message || 'Error executing AI pipeline.', { id: taskId });
+    }
   };
 
   return (
@@ -123,25 +146,43 @@ export default function KanbanBoard() {
                     laneTasks.map((task) => (
                       <div key={task.id} className="bg-[#0F1424]/90 border border-slate-800/80 p-4 rounded-xl hover:border-slate-700/60 transition-all group flex flex-col justify-between relative shadow-sm">
                         <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.MEDIUM}`}>
                               {task.priority}
                             </span>
                             
-                            {lane.id !== 'DONE' && (
+                            <div className="flex items-center gap-1.5">
+                              {/* DEVSYNC AI ACTION TRIGGER BUTTON */}
                               <button
-                                onClick={() => promoteTaskStatus(task.id, task.status)}
-                                title="Promote task to next workflow column step"
-                                className="opacity-0 group-hover:opacity-100 p-1 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
+                                onClick={() => triggerAiBlueprint(task.id)}
+                                disabled={isAiAnalyzing[task.id]}
+                                className="p-1 bg-indigo-950/40 border border-indigo-900/60 hover:bg-indigo-600 rounded-md text-indigo-400 hover:text-white transition-colors cursor-pointer flex items-center disabled:opacity-50"
+                                title="Run DevSync AI Roadmap Blueprint Analysis"
                               >
-                                <ArrowRight className="w-3 h-3" />
+                                {isAiAnalyzing[task.id] ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3" />
+                                )}
                               </button>
-                            )}
+
+                              {lane.id !== 'DONE' && (
+                                <button
+                                  onClick={() => promoteTaskStatus(task.id, task.status)}
+                                  title="Promote task to next workflow column step"
+                                  className="opacity-0 group-hover:opacity-100 p-1 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
+                                >
+                                  <ArrowRight className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           
                           <h4 className="text-sm font-semibold text-white tracking-tight leading-snug group-hover:text-indigo-400 transition-colors">{task.title}</h4>
                           {task.description && (
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{task.description}</p>
+                            <p className="text-xs text-slate-400 leading-relaxed whitespace-pre-wrap bg-black/10 p-2 rounded-lg border border-slate-900/60 font-sans mt-2">
+                              {task.description}
+                            </p>
                           )}
                         </div>
 
@@ -217,6 +258,7 @@ export default function KanbanBoard() {
                     <option value="LOW">Low Allocation</option>
                     <option value="MEDIUM">Medium Standard</option>
                     <option value="HIGH">High Urgency</option>
+                    <option value="URGENT">Critical Emergency</option>
                   </select>
                 </div>
 
@@ -229,7 +271,7 @@ export default function KanbanBoard() {
                   >
                     <option value="TODO">To Do Backlog</option>
                     <option value="IN_PROGRESS">In Progress</option>
-                    <option value="REVIEW">Review Phase</option>
+                    <option value="IN_REVIEW">Review Phase</option>
                     <option value="DONE">Completed Done</option>
                   </select>
                 </div>
