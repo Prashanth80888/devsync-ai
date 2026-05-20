@@ -63,6 +63,9 @@ model User {
   // Activity Logs
   activityLogs  ActivityLog[]
 
+  // Code Playground Relations
+  playgroundsCreated CodePlayground[] @relation("SnippetCreator")
+
   @@index([email])
 }
 
@@ -152,6 +155,9 @@ model Project {
   // Relations
   tasks         Task[]
   activityLogs  ActivityLog[]
+
+  // Code Playground Relations
+  playgrounds   CodePlayground[]
 }
 
 // ==================================================
@@ -256,4 +262,56 @@ model ActivityLog {
 
   @@index([orgId])
   @@index([userId])
+}
+
+// ==================================================
+// CODE PLAYGROUND MODEL
+// ==================================================
+
+model CodePlayground {
+
+  id              String   @id @default(uuid())
+
+  title           String
+
+  code            String   @db.Text
+
+  language        String   @default("javascript")
+
+  // ==================================================
+  // PROJECT RELATION
+  // ==================================================
+
+  projectId       String
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // ==================================================
+  // CREATOR RELATION
+  // ==================================================
+
+  createdById     String
+
+  createdBy       User     @relation("SnippetCreator", fields: [createdById], references: [id])
+
+  // ==================================================
+  // AI REVIEW CACHE
+  // ==================================================
+
+  aiReviewCache   String?  @db.Text
+
+  lastAnalyzedAt  DateTime?
+
+  // ==================================================
+  // TIMESTAMPS
+  // ==================================================
+
+  createdAt       DateTime @default(now())
+
+  updatedAt       DateTime @updatedAt
+
+  @@index([projectId])
+
+  @@index([createdById])
+
 }

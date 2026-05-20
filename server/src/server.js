@@ -16,6 +16,7 @@ import activityRoutes from './routes/activityRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import playgroundRoutes from './routes/playgroundRoutes.js';
 
 // Import Global Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -98,6 +99,8 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/users', userRoutes);
 
 app.use('/api/ai', aiRoutes);
+
+app.use('/api/playgrounds', playgroundRoutes);
 
 // ========================================
 // HEALTH CHECK ROUTE
