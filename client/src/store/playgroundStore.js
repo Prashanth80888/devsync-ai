@@ -1,121 +1,373 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// ==================================================
+// API BASE URL
+// ==================================================
 
-// Configure credentials attachment across axios requests if your app uses cookie sessions
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// ==================================================
+// GLOBAL SOCKET CONNECTION
+// ==================================================
+
+const socket = io(API_URL, {
+  autoConnect: true,
+  reconnection: true
+});
+
+// ==================================================
+// GLOBAL AXIOS CONFIG
+// ==================================================
+
 axios.defaults.withCredentials = true;
 
+// ==================================================
+// PLAYGROUND STORE
+// ==================================================
+
 export const usePlaygroundStore = create((set, get) => ({
+
   playgrounds: [],
+
   currentSandbox: null,
+
   isLoading: false,
+
   isAnalyzing: false,
 
-  /**
-   * Pull all available sandbox workspaces bound to a project
-   */
-  fetchProjectPlaygrounds: async (projectId) => {
-    set({ isLoading: true });
-    try {
-      // Ensure your interceptors automatically inject headers or authorization keys
-      const token = localStorage.getItem('token');
-      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  // ==================================================
+  // FETCH PROJECT PLAYGROUNDS
+  // ==================================================
 
-      const response = await axios.get(`${API_URL}/api/playgrounds/project/${projectId}`, config);
-      
+  fetchProjectPlaygrounds: async (projectId) => {
+
+    set({ isLoading: true });
+
+    try {
+
+      const token =
+        localStorage.getItem('token');
+
+      const config = token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        : {};
+
+      const response = await axios.get(
+        `${API_URL}/api/playgrounds/project/${projectId}`,
+        config
+      );
+
       if (response.data.success) {
-        set({ playgrounds: response.data.playgrounds, isLoading: false });
-        // Automatically default to the first workspace element if none is selected
-        if (response.data.playgrounds.length > 0 && !get().currentSandbox) {
-          set({ currentSandbox: response.data.playgrounds[0] });
+
+        set({
+          playgrounds: response.data.playgrounds,
+          isLoading: false
+        });
+
+        // Auto select first sandbox if none selected
+        if (
+          response.data.playgrounds.length > 0 &&
+          !get().currentSandbox
+        ) {
+
+          set({
+            currentSandbox:
+              response.data.playgrounds[0]
+          });
         }
       }
+
     } catch (error) {
-      console.error('Zustand pipeline playground collection failure:', error);
+
+      console.error(
+        'Zustand pipeline playground collection failure:',
+        error
+      );
+
       set({ isLoading: false });
     }
   },
 
-  /**
-   * Set or focus on a specific code playground instance explicitly
-   */
-  setCurrentSandbox: (sandbox) => set({ currentSandbox: sandbox }),
+  // ==================================================
+  // SET CURRENT SANDBOX
+  // ==================================================
 
-  /**
-   * Persist code buffer or workspace structural modifications back to database
-   */
+  setCurrentSandbox: (sandbox) =>
+
+    set({
+      currentSandbox: sandbox
+    }),
+
+  // ==================================================
+  // SAVE SANDBOX SNIPPET
+  // ==================================================
+
   saveSandboxSnippet: async (snippetPayload) => {
+
     try {
-      const token = localStorage.getItem('token');
-      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
-      const response = await axios.post(`${API_URL}/api/playgrounds/save`, snippetPayload, config);
-      
+      const token =
+        localStorage.getItem('token');
+
+      const config = token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        : {};
+
+      const response = await axios.post(
+        `${API_URL}/api/playgrounds/save`,
+        snippetPayload,
+        config
+      );
+
       if (response.data.success) {
-        const savedNode = response.data.playground;
-        const currentList = get().playgrounds;
-        
-        // Check if updating an existing record or appending a brand new item instance
-        const updatedList = currentList.some((p) => p.id === savedNode.id)
-          ? currentList.map((p) => (p.id === savedNode.id ? { ...p, ...savedNode } : p))
-          : [savedNode, ...currentList];
 
-        set({ 
-          playgrounds: updatedList, 
-          currentSandbox: savedNode 
+        const savedNode =
+          response.data.playground;
+
+        const currentList =
+          get().playgrounds;
+
+        // Update existing or insert new
+        const updatedList =
+          currentList.some(
+            (p) => p.id === savedNode.id
+          )
+            ? currentList.map((p) =>
+                p.id === savedNode.id
+                  ? { ...p, ...savedNode }
+                  : p
+              )
+            : [savedNode, ...currentList];
+
+        set({
+          playgrounds: updatedList,
+          currentSandbox: savedNode
         });
+
         return { success: true };
       }
-      return { success: false, message: response.data.message || 'Processing fallback error.' };
+
+      return {
+        success: false,
+        message:
+          response.data.message ||
+          'Processing fallback error.'
+      };
+
     } catch (error) {
-      console.error('Failed to commit code block to disk layer:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Network transport timeout occurred.' 
+
+      console.error(
+        'Failed to commit code block to disk layer:',
+        error
+      );
+
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          'Network transport timeout occurred.'
       };
     }
   },
 
-  /**
-   * Trigger real-time static code analysis via backend Gemini flash wrapper
-   */
-  analyzeCurrentCode: async (sandboxId) => {
-    set({ isAnalyzing: true });
-    try {
-      const token = localStorage.getItem('token');
-      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  // ==================================================
+  // AI ANALYSIS
+  // ==================================================
 
-      const response = await axios.post(`${API_URL}/api/playgrounds/${sandboxId}/analyze`, {}, config);
-      
+  analyzeCurrentCode: async (sandboxId) => {
+
+    set({ isAnalyzing: true });
+
+    try {
+
+      const token =
+        localStorage.getItem('token');
+
+      const config = token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        : {};
+
+      const response = await axios.post(
+        `${API_URL}/api/playgrounds/${sandboxId}/analyze`,
+        {},
+        config
+      );
+
       if (response.data.success) {
-        const currentSandbox = get().currentSandbox;
-        
-        // Dynamically append the review text and updated timestamp matrix properties
+
+        const currentSandbox =
+          get().currentSandbox;
+
         const enhancedSandbox = {
           ...currentSandbox,
-          aiReviewCache: response.data.aiReview,
-          lastAnalyzedAt: response.data.lastAnalyzedAt
+          aiReviewCache:
+            response.data.aiReview,
+          lastAnalyzedAt:
+            response.data.lastAnalyzedAt
         };
 
-        // Sync updates cleanly across the general playgrounds tracking inventory array
         set((state) => ({
           currentSandbox: enhancedSandbox,
-          playgrounds: state.playgrounds.map((p) => (p.id === sandboxId ? enhancedSandbox : p)),
+
+          playgrounds:
+            state.playgrounds.map((p) =>
+              p.id === sandboxId
+                ? enhancedSandbox
+                : p
+            ),
+
           isAnalyzing: false
         }));
 
-        return { success: true, analysis: response.data.aiReview };
+        return {
+          success: true,
+          analysis: response.data.aiReview
+        };
       }
+
       set({ isAnalyzing: false });
-      return { success: false, message: response.data.message };
+
+      return {
+        success: false,
+        message: response.data.message
+      };
+
     } catch (error) {
-      console.error('Gemini verification intercept execution fail:', error);
+
+      console.error(
+        'Gemini verification intercept execution fail:',
+        error
+      );
+
       set({ isAnalyzing: false });
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'AI compiler infrastructure timeout.' 
+
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          'AI compiler infrastructure timeout.'
       };
     }
+  },
+
+  // ==================================================
+  // SOCKET LISTENERS
+  // ==================================================
+
+  listenToSandboxSocket: (sandboxId) => {
+
+    if (!sandboxId) return;
+
+    // Join dedicated room
+    socket.emit('sandbox:join', {
+      sandboxId
+    });
+
+    // Listen for code updates
+    socket.on(
+      'sandbox:code_updated',
+      (data) => {
+
+        const { currentSandbox } = get();
+
+        if (
+          currentSandbox &&
+          currentSandbox.id === data.sandboxId
+        ) {
+
+          if (
+            currentSandbox.code !== data.code
+          ) {
+
+            set({
+              currentSandbox: {
+                ...currentSandbox,
+                code: data.code,
+                updatedAt:
+                  new Date().toISOString()
+              }
+            });
+          }
+        }
+      }
+    );
+
+    // Listen for AI analysis completion
+    socket.on(
+      'sandbox:analysis_completed',
+      (data) => {
+
+        const { currentSandbox } = get();
+
+        if (
+          currentSandbox &&
+          currentSandbox.id === data.sandboxId
+        ) {
+
+          set({
+            currentSandbox: {
+              ...currentSandbox,
+              aiReviewCache:
+                data.aiReviewCache,
+
+              lastAnalyzedAt:
+                data.lastAnalyzedAt
+            }
+          });
+        }
+      }
+    );
+  },
+
+  // ==================================================
+  // BROADCAST CODE CHANGES
+  // ==================================================
+
+  broadcastCodeChange: (
+    sandboxId,
+    updatedCode
+  ) => {
+
+    if (!sandboxId) return;
+
+    socket.emit('sandbox:edit_code', {
+      sandboxId,
+      code: updatedCode
+    });
+  },
+
+  // ==================================================
+  // LEAVE SOCKET ROOM
+  // ==================================================
+
+  leaveSandboxSocket: (sandboxId) => {
+
+    if (!sandboxId) return;
+
+    socket.emit('sandbox:leave', {
+      sandboxId
+    });
+
+    socket.off('sandbox:code_updated');
+
+    socket.off(
+      'sandbox:analysis_completed'
+    );
   }
+
 }));
